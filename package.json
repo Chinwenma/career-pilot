@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src --fix",
+    "lint": "eslint . --fix",
         "lint:check": "eslint .",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",

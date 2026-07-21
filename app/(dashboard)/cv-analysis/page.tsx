@@ -71,13 +71,13 @@ export default function CVAnalysisPage() {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
       setFile(selectedFile);
-      analyzeCV(selectedFile);
+      analyzeCV();
     } else {
       alert("Please upload a PDF or DOCX file");
     }
   };
 
-  const analyzeCV = (uploadedFile: File) => {
+  const analyzeCV = () => {
     setIsAnalyzing(true);
     // Simulate API call
     setTimeout(() => {
