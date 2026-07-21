@@ -25,7 +25,7 @@ jobs:
 
       # Linting
       - name: Run ESLint
-        run: bun run lint
+        run: bun run lint:check
 
       # Type checking
       - name: Check TypeScript
