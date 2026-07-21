@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint src --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest",
+    "test:e2e": "cypress run",
+    "audit": "bun audit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -19,12 +25,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^16.2.10",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
+    "eslint": "^10.7.0",
     "eslint-config-next": "16.2.10",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
