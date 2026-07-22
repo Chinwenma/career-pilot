@@ -5,6 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import { login } from "@/app/actions/auth";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -15,6 +18,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -25,8 +29,17 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
-    console.log("Login:", data);
-    setTimeout(() => setIsLoading(false), 1000);
+    const result = await login(data);
+    setIsLoading(false);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Welcome back!");
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (

@@ -5,6 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import { registerUser } from "@/app/actions/auth";
 
 const registerSchema = z
   .object({
@@ -22,6 +25,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -32,8 +36,17 @@ export default function RegisterPage() {
 
   async function onSubmit(data: RegisterFormValues) {
     setIsLoading(true);
-    console.log("Register:", data);
-    setTimeout(() => setIsLoading(false), 1000);
+    const result = await registerUser(data);
+    setIsLoading(false);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Account created!");
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
