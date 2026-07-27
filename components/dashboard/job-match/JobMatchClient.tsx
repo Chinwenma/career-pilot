@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Briefcase, CheckCircle, AlertCircle, Zap } from "lucide-react";
+import { toast } from "react-toastify";
+import { matchJob } from "@/app/actions/job-match";
 
 type JobMatchResult = {
   matchPercentage: number;
@@ -17,58 +19,39 @@ export type CV = {
   createdAt: string;
 };
 
-const mockMatchResult: JobMatchResult = {
-  matchPercentage: 72,
-  matchingSkills: [
-    "React",
-    "TypeScript",
-    "Next.js",
-    "Node.js",
-    "PostgreSQL",
-    "CSS",
-    "Git",
-  ],
-  missingSkills: ["Docker", "AWS", "GraphQL", "Kubernetes", "Redis"],
-  recommendedKeywords: [
-    "Full-stack Developer",
-    "SaaS",
-    "Agile",
-    "REST API",
-    "Database Design",
-    "UI/UX",
-  ],
-  suggestions: [
-    "72% match is good! Focus on learning Docker to increase compatibility.",
-    "Highlight your React & Next.js experience prominently.",
-    "Add projects that demonstrate full-stack capabilities.",
-    "Mention any cloud experience, even if not AWS.",
-    "Include metrics in your achievements (performance improvements, user growth).",
-  ],
-};
-
 export function JobMatchClient({ cvs }: { cvs: CV[] }) {
   const [selectedCVId, setSelectedCVId] = useState(cvs[0]?.id ?? "");
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [matchResult, setMatchResult] = useState<JobMatchResult | null>(null);
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!jobDescription.trim()) {
-      alert("Please paste a job description");
+      toast.error("Please paste a job description");
       return;
     }
 
     if (!selectedCVId) {
-      alert("Please select a CV");
+      toast.error("Please select a CV");
       return;
     }
 
     setIsAnalyzing(true);
-    // Simulate API call — no real matching model wired up yet.
-    setTimeout(() => {
-      setMatchResult(mockMatchResult);
+    try {
+      const record = await matchJob(selectedCVId, jobDescription);
+      setMatchResult({
+        matchPercentage: record.matchPercentage,
+        matchingSkills: record.matchingSkills,
+        missingSkills: record.missingSkills,
+        recommendedKeywords: record.recommendedKeywords,
+        suggestions: record.suggestions,
+      });
+      toast.success("Job match analysis complete!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Match failed");
+    } finally {
       setIsAnalyzing(false);
-    }, 2000);
+    }
   };
 
   const handleReset = () => {

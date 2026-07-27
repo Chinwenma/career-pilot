@@ -116,6 +116,7 @@ ${cvText}`,
       data: {
         userId: session.user.id,
         fileName,
+        cvText,
         atsScore: analysis.score,
         strengths: analysis.strengths,
         weaknesses: analysis.weaknesses,

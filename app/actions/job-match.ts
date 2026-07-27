@@ -1,27 +1,40 @@
-import { Anthropic } from "@anthropic-ai/sdk";
-import { NextRequest, NextResponse } from "next/server";
+"use server";
+
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { Anthropic } from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function POST(req: NextRequest) {
+export async function matchJob(cvAnalysisId: string, jobDescription: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("You must be logged in.");
+  }
+
+  if (!jobDescription.trim()) {
+    throw new Error("Job description is required.");
+  }
+
+  const cv = await prisma.cVAnalysis.findFirst({
+    where: { id: cvAnalysisId, userId: session.user.id },
+  });
+
+  if (!cv) {
+    throw new Error("CV not found.");
+  }
+
+  if (!cv.cvText) {
+    throw new Error(
+      "This CV was analyzed before text storage was enabled. Please re-upload it on the CV Analysis page."
+    );
+  }
+
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { cvText, jobDescription } = await req.json();
-
-    if (!cvText || !jobDescription) {
-      return NextResponse.json(
-        { error: "CV and job description are required" },
-        { status: 400 }
-      );
-    }
-
+    // Compare with Claude
     const message = await anthropic.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 1024,
@@ -57,7 +70,7 @@ export async function POST(req: NextRequest) {
           content: `Compare this CV with the job description: give a match percentage, matching skills, missing skills, recommended keywords to add, and improvement suggestions.
 
 CV:
-${cvText}
+${cv.cvText}
 
 JOB DESCRIPTION:
 ${jobDescription}`,
@@ -67,14 +80,29 @@ ${jobDescription}`,
 
     const responseText =
       message.content[0].type === "text" ? message.content[0].text : "";
-    const match = JSON.parse(responseText);
+    const result = JSON.parse(responseText);
 
-    return NextResponse.json(match);
+    // Save to database
+    const jobMatch = await prisma.jobMatch.create({
+      data: {
+        userId: session.user.id,
+        cvAnalysisId: cv.id,
+        jobDescription,
+        matchPercentage: result.matchPercentage,
+        matchingSkills: result.matchingSkills,
+        missingSkills: result.missingSkills,
+        recommendedKeywords: result.recommendedKeywords,
+        suggestions: result.suggestions,
+      },
+    });
+
+    revalidatePath("/job-match");
+
+    return jobMatch;
   } catch (error) {
     console.error("Job Match error:", error);
-    return NextResponse.json(
-      { error: "Matching failed" },
-      { status: 500 }
+    throw new Error(
+      `Match failed: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }

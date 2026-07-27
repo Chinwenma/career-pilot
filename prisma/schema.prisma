@@ -29,6 +29,7 @@ model User {
 
   applications  Application[]
   cvAnalysis    CVAnalysis[]
+  jobMatches    JobMatch[]
 }
 
 model Application {
@@ -53,6 +54,7 @@ model CVAnalysis {
   id            String    @id @default(cuid())
   userId        String
   fileName      String
+  cvText        String    @default("")
   atsScore      Int?
   strengths     String[]  @default([])
   weaknesses    String[]  @default([])
@@ -62,6 +64,26 @@ model CVAnalysis {
   updatedAt     DateTime  @updatedAt
 
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  jobMatches    JobMatch[]
+
   @@index([userId])
+}
+
+model JobMatch {
+  id                  String   @id @default(cuid())
+  userId              String
+  cvAnalysisId        String
+  jobDescription      String
+  matchPercentage     Int
+  matchingSkills      String[] @default([])
+  missingSkills       String[] @default([])
+  recommendedKeywords String[] @default([])
+  suggestions         String[] @default([])
+  createdAt           DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cvAnalysis CVAnalysis @relation(fields: [cvAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([cvAnalysisId])
 }
