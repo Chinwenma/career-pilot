@@ -1,35 +1,93 @@
-"use client";
-
 import Link from "next/link";
-import { BarChart3, Zap, MessageSquare, TrendingUp } from "lucide-react";
+import { BarChart3, ClipboardList, TrendingUp } from "lucide-react";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-export default function DashboardPage() {
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  const units: [number, string][] = [
+    [60, "second"],
+    [60, "minute"],
+    [24, "hour"],
+    [7, "day"],
+    [4.345, "week"],
+    [12, "month"],
+    [Number.POSITIVE_INFINITY, "year"],
+  ];
+
+  let value = seconds;
+  for (const [amount, unit] of units) {
+    if (value < amount) {
+      const rounded = Math.floor(value);
+      return `${rounded} ${unit}${rounded === 1 ? "" : "s"} ago`;
+    }
+    value /= amount;
+  }
+  return "just now";
+}
+
+export default async function DashboardPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const [cvAnalyses, applications] = await Promise.all([
+    prisma.cVAnalysis.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.application.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const avgAtsScore =
+    cvAnalyses.length > 0
+      ? Math.round(
+          cvAnalyses.reduce((sum, a) => sum + (a.atsScore ?? 0), 0) /
+            cvAnalyses.length
+        )
+      : null;
+
   const stats = [
     {
       icon: BarChart3,
       label: "CVs Analyzed",
-      value: "3",
+      value: String(cvAnalyses.length),
       color: "text-blue-400",
     },
     {
       icon: TrendingUp,
       label: "Average ATS Score",
-      value: "78%",
+      value: avgAtsScore !== null ? `${avgAtsScore}%` : "—",
       color: "text-green-400",
     },
     {
-      icon: MessageSquare,
-      label: "Cover Letters",
-      value: "5",
-      color: "text-purple-400",
-    },
-    {
-      icon: Zap,
+      icon: ClipboardList,
       label: "Applications",
-      value: "8",
+      value: String(applications.length),
       color: "text-orange-400",
     },
   ];
+
+  const recentActivity = [
+    ...applications.map((application) => ({
+      action: `Application ${application.status}`,
+      company: application.company,
+      date: application.createdAt,
+    })),
+    ...cvAnalyses.map((analysis) => ({
+      action: "CV analyzed",
+      company: analysis.fileName,
+      date: analysis.createdAt,
+    })),
+  ]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 5);
 
   return (
     <div className="space-y-8">
@@ -41,7 +99,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, idx) => {
           const Icon = stat.icon;
           return (
@@ -83,36 +141,29 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-xl font-bold text-white mb-4">Recent Activity</h2>
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-          <div className="space-y-4">
-            {[
-              {
-                action: "CV analyzed",
-                company: "Langdock",
-                time: "2 hours ago",
-              },
-              {
-                action: "Cover letter generated",
-                company: "JustWatch",
-                time: "1 day ago",
-              },
-              {
-                action: "Application submitted",
-                company: "GAIA",
-                time: "3 days ago",
-              },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between border-b border-slate-700 pb-4 last:border-0"
-              >
-                <div>
-                  <p className="text-white font-medium">{item.action}</p>
-                  <p className="text-slate-400 text-sm">{item.company}</p>
+          {recentActivity.length > 0 ? (
+            <div className="space-y-4">
+              {recentActivity.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b border-slate-700 pb-4 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <p className="text-white font-medium">{item.action}</p>
+                    <p className="text-slate-400 text-sm">{item.company}</p>
+                  </div>
+                  <p className="text-slate-500 text-sm">
+                    {timeAgo(item.date)}
+                  </p>
                 </div>
-                <p className="text-slate-500 text-sm">{item.time}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-400 text-center py-4">
+              No activity yet. Upload a CV or track your first application to
+              get started.
+            </p>
+          )}
         </div>
       </div>
     </div>
