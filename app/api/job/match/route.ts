@@ -23,27 +23,44 @@ export async function POST(req: NextRequest) {
     }
 
     const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-haiku-4-5",
       max_tokens: 1024,
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              matchPercentage: { type: "integer" },
+              matchingSkills: { type: "array", items: { type: "string" } },
+              missingSkills: { type: "array", items: { type: "string" } },
+              recommendedKeywords: {
+                type: "array",
+                items: { type: "string" },
+              },
+              suggestions: { type: "array", items: { type: "string" } },
+            },
+            required: [
+              "matchPercentage",
+              "matchingSkills",
+              "missingSkills",
+              "recommendedKeywords",
+              "suggestions",
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
       messages: [
         {
           role: "user",
-          content: `Compare this CV with the job description and provide a JSON response:
-{
-  "matchPercentage": <number 0-100>,
-  "matchingSkills": [<array of skills found in both>],
-  "missingSkills": [<array of skills needed but not in CV>],
-  "recommendedKeywords": [<array of keywords to add>],
-  "suggestions": [<array of improvement suggestions>]
-}
+          content: `Compare this CV with the job description: give a match percentage, matching skills, missing skills, recommended keywords to add, and improvement suggestions.
 
 CV:
 ${cvText}
 
 JOB DESCRIPTION:
-${jobDescription}
-
-Respond ONLY with valid JSON, no markdown or extra text.`,
+${jobDescription}`,
         },
       ],
     });

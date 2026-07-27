@@ -44,9 +44,8 @@ export default function RegisterPage() {
       return;
     }
 
-    toast.success("Account created!");
-    router.push("/dashboard");
-    router.refresh();
+    toast.success("Account created! We'll email you once it's approved.");
+    router.push("/login");
   }
 
   return (

@@ -8,17 +8,24 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String?
-  location      String?
-  headline      String?
-  bio           String?
-  skills        String[]  @default([])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  password       String?
+  location       String?
+  headline       String?
+  bio            String?
+  skills         String[]       @default([])
+  approvalStatus ApprovalStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   applications  Application[]
   cvAnalysis    CVAnalysis[]

@@ -21,9 +21,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email: typedCredentials.email },
         });
         if (!user) return null;
-        
+
         const isValid = await compare(typedCredentials.password, user.password!);
         if (!isValid) return null;
+
+        if (user.approvalStatus !== "APPROVED") return null;
 
         return {
           id: user.id,

@@ -25,24 +25,38 @@ export async function POST(req: NextRequest) {
 
     // Call Claude API
     const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-haiku-4-5",
       max_tokens: 1024,
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              score: { type: "integer" },
+              strengths: { type: "array", items: { type: "string" } },
+              weaknesses: { type: "array", items: { type: "string" } },
+              missingSkills: { type: "array", items: { type: "string" } },
+              suggestions: { type: "array", items: { type: "string" } },
+            },
+            required: [
+              "score",
+              "strengths",
+              "weaknesses",
+              "missingSkills",
+              "suggestions",
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
       messages: [
         {
           role: "user",
-          content: `Analyze this CV and provide a JSON response with the following structure:
-{
-  "score": <number 0-100>,
-  "strengths": [<array of strings>],
-  "weaknesses": [<array of strings>],
-  "missingSkills": [<array of strings>],
-  "suggestions": [<array of strings>]
-}
+          content: `Analyze this CV and score it (0-100), listing strengths, weaknesses, missing skills, and suggestions.
 
 CV:
-${cvText}
-
-Respond ONLY with valid JSON, no markdown or extra text.`,
+${cvText}`,
         },
       ],
     });

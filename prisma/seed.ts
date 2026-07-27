@@ -130,8 +130,8 @@ async function main() {
   for (const { applications, cvAnalysis, ...userData } of usersData) {
     const user = await prisma.user.upsert({
       where: { email: userData.email },
-      update: { ...userData, password: hashedPassword },
-      create: { ...userData, password: hashedPassword },
+      update: { ...userData, password: hashedPassword, approvalStatus: "APPROVED" },
+      create: { ...userData, password: hashedPassword, approvalStatus: "APPROVED" },
     });
 
     await prisma.application.deleteMany({ where: { userId: user.id } });

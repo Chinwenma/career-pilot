@@ -6,6 +6,8 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
+import { createApprovalToken } from "@/lib/approval-token";
+import { sendSignupApprovalRequest } from "@/lib/notify-owner";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -20,6 +22,7 @@ const registerSchema = z.object({
 
 export type AuthActionState = {
   error?: string;
+  pending?: boolean;
 };
 
 export async function login(values: {
@@ -29,6 +32,17 @@ export async function login(values: {
   const parsed = loginSchema.safeParse(values);
   if (!parsed.success) {
     return { error: "Invalid email or password." };
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { email: parsed.data.email },
+    select: { approvalStatus: true },
+  });
+  if (existing?.approvalStatus === "PENDING") {
+    return { error: "Your account is still awaiting approval." };
+  }
+  if (existing?.approvalStatus === "REJECTED") {
+    return { error: "This account request was not approved." };
   }
 
   try {
@@ -65,19 +79,17 @@ export async function registerUser(values: {
 
   const hashedPassword = await hash(password, 10);
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: { name, email, password: hashedPassword },
   });
 
-  try {
-    await signIn("credentials", { email, password, redirect: false });
-    return {};
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Account created. Please log in." };
-    }
-    throw error;
-  }
+  const appUrl = process.env.APP_URL || "http://localhost:3000";
+  const approveUrl = `${appUrl}/api/admin/approve-user?token=${createApprovalToken(user.id, "approve")}`;
+  const rejectUrl = `${appUrl}/api/admin/approve-user?token=${createApprovalToken(user.id, "reject")}`;
+
+  await sendSignupApprovalRequest({ name, email, approveUrl, rejectUrl });
+
+  return { pending: true };
 }
 
 export async function logout() {
