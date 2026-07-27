@@ -61,6 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const isLoggedIn = !!auth?.user;
       const isAuthPage =
         nextUrl.pathname.startsWith("/login") ||
+        nextUrl.pathname.startsWith("/register") ||
         nextUrl.pathname.startsWith("/forgot-password");
 
       if (isAuthPage) {

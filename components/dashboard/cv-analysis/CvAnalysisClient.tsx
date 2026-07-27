@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, FileText, CheckCircle, AlertCircle, Zap } from "lucide-react";
+import { toast } from "react-toastify";
 import { analyzeCv } from "@/app/actions/cv-analysis";
-
 export type AnalysisResult = {
   fileName: string;
   score: number;
@@ -55,13 +55,18 @@ export function CvAnalysisClient({
       setFile(selectedFile);
       void runAnalysis(selectedFile);
     } else {
-      alert("Please upload a PDF or DOCX file");
+      toast.error("Please upload a PDF or DOCX file");
     }
   };
 
-  const runAnalysis = async (selectedFile: File) => {
-    setIsAnalyzing(true);
-    const record = await analyzeCv(selectedFile.name);
+const runAnalysis = async (selectedFile: File) => {
+  setIsAnalyzing(true);
+  try {
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    const record = await analyzeCv(formData);
+
     setAnalysis({
       fileName: record.fileName,
       score: record.atsScore ?? 0,
@@ -70,9 +75,13 @@ export function CvAnalysisClient({
       missingSkills: record.missingSkills,
       suggestions: record.suggestions,
     });
+    toast.success("CV analysis complete!");
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "Analysis failed");
+  } finally {
     setIsAnalyzing(false);
-    router.refresh();
-  };
+  }
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

@@ -3,57 +3,121 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Anthropic } from "@anthropic-ai/sdk";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import * as pdfjsWorker from "pdfjs-dist/legacy/build/pdf.worker.mjs";
+import mammoth from "mammoth";
 
-const SKILL_POOL = [
-  "Docker",
-  "AWS / Cloud Architecture",
-  "GraphQL",
-  "Kubernetes",
-  "Testing (Jest/RTL)",
-  "CI/CD",
-];
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
-/**
- * Scores are deterministically derived from the file name since there is no
- * real CV-parsing/AI pipeline wired up yet. Replace with a real analyzer
- * when one is available.
- */
-export async function analyzeCv(fileName: string) {
+// Bundlers can't resolve pdf.js's runtime worker path, so wire the worker
+// module in directly; pdf.js checks for this before attempting that import.
+(globalThis as { pdfjsWorker?: typeof pdfjsWorker }).pdfjsWorker = pdfjsWorker;
+
+async function extractTextFromPdf(buffer: Buffer): Promise<string> {
+  const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.length);
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  let text = "";
+
+  for (let i = 0; i < pdf.numPages; i++) {
+    const page = await pdf.getPage(i + 1);
+    const textContent = await page.getTextContent();
+    text += textContent.items.map((item: any) => item.str).join(" ") + "\n";
+  }
+
+  return text;
+}
+
+async function extractTextFromDocx(buffer: Buffer): Promise<string> {
+  const { value } = await mammoth.extractRawText({ buffer });
+  return value;
+}
+
+export async function analyzeCv(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("You must be logged in.");
   }
 
-  const seed = fileName
-    .split("")
-    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const atsScore = 60 + (seed % 36);
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    throw new Error("No file provided.");
+  }
 
-  const analysis = await prisma.cVAnalysis.create({
-    data: {
-      userId: session.user.id,
-      fileName,
-      atsScore,
-      strengths: [
-        "Clear, chronological work history",
-        "Good use of action verbs and metrics",
-      ],
-      weaknesses: [
-        "Missing quantifiable achievements in some roles",
-        "No professional summary at the top",
-      ],
-      missingSkills: SKILL_POOL.slice(0, 3 + (seed % 3)),
-      suggestions: [
-        "Add measurable impact to each role, e.g. performance improvements.",
-        "Include a professional summary at the top of the CV.",
-        "Mirror 2-3 keywords from your target job descriptions.",
-      ],
-    },
-  });
+  const fileName = file.name;
+  const fileType = file.type;
 
-  revalidatePath("/cv-analysis");
-  revalidatePath("/dashboard");
-  revalidatePath("/job-match");
+  try {
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    let cvText = "";
 
-  return analysis;
+    // Extract text based on file type
+    if (fileType === "application/pdf") {
+      cvText = await extractTextFromPdf(fileBuffer);
+    } else if (
+      fileType ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      cvText = await extractTextFromDocx(fileBuffer);
+    } else {
+      throw new Error("Unsupported file type. Please upload PDF or DOCX.");
+    }
+
+    if (!cvText.trim()) {
+      throw new Error("Could not extract text from file");
+    }
+
+    // Analyze with Claude
+    const message = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: `Analyze this CV and provide a JSON response:
+{
+  "score": <number 0-100>,
+  "strengths": [<array of 3-4 strings>],
+  "weaknesses": [<array of 2-3 strings>],
+  "missingSkills": [<array of 4-5 strings>],
+  "suggestions": [<array of 3-4 strings>]
+}
+
+CV TEXT:
+${cvText}
+
+Respond ONLY with valid JSON, no markdown or extra text.`,
+        },
+      ],
+    });
+
+    const responseText =
+      message.content[0].type === "text" ? message.content[0].text : "";
+    const analysis = JSON.parse(responseText);
+
+    // Save to database
+    const cvAnalysis = await prisma.cVAnalysis.create({
+      data: {
+        userId: session.user.id,
+        fileName,
+        atsScore: analysis.score,
+        strengths: analysis.strengths,
+        weaknesses: analysis.weaknesses,
+        missingSkills: analysis.missingSkills,
+        suggestions: analysis.suggestions,
+      },
+    });
+
+    revalidatePath("/cv-analysis");
+    revalidatePath("/dashboard");
+
+    return cvAnalysis;
+  } catch (error) {
+    console.error("CV Analysis error:", error);
+    throw new Error(
+      `Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
 }
