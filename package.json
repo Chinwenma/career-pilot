@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "db:seed": "bun prisma/seed.ts",
     "test": "vitest",
     "test:e2e": "cypress run",
     "audit": "bun audit"

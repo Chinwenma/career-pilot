@@ -12,6 +12,7 @@ import {
   ClipboardList,
   X,
 } from "lucide-react";
+import { logout } from "@/app/actions/auth";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -90,7 +91,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Settings className="w-5 h-5" />
             <span>Settings</span>
           </Link>
-          <button className="w-full flex items-center gap-3 px-4 py-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors text-left">
+          <button
+            onClick={() => logout()}
+            className="w-full flex items-center gap-3 px-4 py-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors text-left"
+          >
             <LogOut className="w-5 h-5" />
             <span>Log Out</span>
           </button>

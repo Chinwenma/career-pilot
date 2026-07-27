@@ -61,7 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const isLoggedIn = !!auth?.user;
       const isAuthPage =
         nextUrl.pathname.startsWith("/login") ||
-        nextUrl.pathname.startsWith("/register");
+        nextUrl.pathname.startsWith("/forgot-password");
 
       if (isAuthPage) {
         if (isLoggedIn) {
@@ -70,8 +70,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return true;
       }
 
-      const isProtectedRoute = nextUrl.pathname.startsWith("/dashboard");
-      if (isProtectedRoute && !isLoggedIn) {
+      const publicRoutes = ["/"];
+      const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
+
+      if (!isPublicRoute && !isLoggedIn) {
         return false;
       }
 

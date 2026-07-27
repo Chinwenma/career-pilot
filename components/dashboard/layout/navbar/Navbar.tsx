@@ -3,10 +3,11 @@
 import { Bell, Menu, User } from "lucide-react";
 
 interface NavbarProps {
+  userName: string;
   onMenuClick: () => void;
 }
 
-export function Navbar({ onMenuClick }: NavbarProps) {
+export function Navbar({ userName, onMenuClick }: NavbarProps) {
   return (
     <header className="bg-slate-800 border-b border-slate-700 px-4 md:px-8 h-16 flex items-center justify-between">
       <div className="flex items-center gap-4">
@@ -19,7 +20,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </button>
         <div className="text-sm text-slate-400">
           Welcome back,{" "}
-          <span className="font-semibold text-white">Chinwe</span>
+          <span className="font-semibold text-white">{userName}</span>
         </div>
       </div>
       <div className="flex items-center gap-4">

@@ -15,9 +15,9 @@ export default function Hero() {
           interviews.
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
-          <Link href="/register">
+          <Link href="/login">
             <button className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium inline-flex items-center gap-2 transition-colors">
-              Get Started Free
+              Get Started
               <ArrowRight className="w-4 h-4" />
             </button>
           </Link>

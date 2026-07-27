@@ -7,13 +7,8 @@ export default function Navbar() {
         <div className="text-2xl font-bold text-white">CareerPilot</div>
         <div className="flex gap-4">
           <Link href="/login">
-            <button className="px-4 py-2 text-white hover:bg-slate-700 rounded-lg transition-colors">
-              Log In
-            </button>
-          </Link>
-          <Link href="/register">
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium">
-              Sign Up
+              Log In
             </button>
           </Link>
         </div>
