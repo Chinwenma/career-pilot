@@ -6,22 +6,19 @@ An AI-powered job search assistant built with Next.js. Analyze your CV, match it
 
 ---
 
-## Features
+## Current Features
 
 - ✅ **CV Analysis** — Upload a PDF/DOCX (or paste text) and get AI-driven insights: ATS score, strengths, weaknesses, missing skills, suggestions
 - ✅ **Job Match** — Compare an analyzed CV against a job description to get a match percentage, matching/missing skills, recommended keywords, and suggestions
 - ✅ **Cover Letter Generator** — AI-generated cover letters tailored to a job description
 - ✅ **Application Tracker** — Log applications with company, position, status, date, location, salary, and notes
 - ✅ **Authentication** — Email/password login with an admin approval flow (email notification via Formspree)
-- ✅ **User Profile** — Manage name, location, headline, bio, and skills
 - ✅ **Dashboard** — Overview of your job search activity
 
 ### Roadmap
 
 - 🚧 Interview preparation (AI-generated Q&A)
-- 🚧 German "Bewerbung" application format
 - 🚧 LinkedIn job import
-- 🚧 Browser extension for job sites
 
 ---
 
@@ -31,7 +28,8 @@ An AI-powered job search assistant built with Next.js. Analyze your CV, match it
 - [Next.js 16](https://nextjs.org) (App Router, Turbopack)
 - [React 19](https://react.dev) + TypeScript
 - [Tailwind CSS 4](https://tailwindcss.com)
-- [Lucide React](https://lucide.dev) (icons), [Framer Motion](https://www.framer.com/motion/) (animation)
+- [Lucide React](https://lucide.dev) (icons),
+- [Framer Motion](https://www.framer.com/motion/) (animation)
 - React Hook Form + Zod (form validation)
 
 **Backend**
@@ -46,9 +44,8 @@ An AI-powered job search assistant built with Next.js. Analyze your CV, match it
 - [Anthropic Claude API](https://docs.claude.com) (`claude-haiku-4-5`) for CV analysis, job matching, and cover letter generation
 - `pdfjs-dist` / `mammoth` for parsing uploaded PDF/DOCX CVs
 
-**Deployment & CI**
+**Deployment**
 - [Vercel](https://vercel.com) (hosting + build)
-- GitHub Actions — type-check and build on every push/PR (`.github/workflows/ci.yml`)
 
 ---
 
