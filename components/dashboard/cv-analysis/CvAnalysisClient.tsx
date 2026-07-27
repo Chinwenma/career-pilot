@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { Upload, FileText, CheckCircle, AlertCircle, Zap } from "lucide-react";
 import { toast } from "react-toastify";
 import { analyzeCv } from "@/app/actions/cv-analysis";
@@ -19,7 +18,7 @@ export function CvAnalysisClient({
 }: {
   initialAnalysis: AnalysisResult | null;
 }) {
-  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -90,6 +89,48 @@ const runAnalysis = async (selectedFile: File) => {
     }
   };
 
+  const handleReset = () => {
+    setFile(null);
+    setAnalysis(null);
+    // Clear the input value so re-selecting the same file fires onChange again.
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDownloadReport = () => {
+    if (!analysis) return;
+
+    const lines = [
+      `CV Analysis Report — ${analysis.fileName}`,
+      `Generated: ${new Date().toLocaleString("de-DE")}`,
+      "",
+      `ATS Score: ${analysis.score}%`,
+      "",
+      "Strengths:",
+      ...analysis.strengths.map((s) => `  - ${s}`),
+      "",
+      "Weaknesses:",
+      ...analysis.weaknesses.map((w) => `  - ${w}`),
+      "",
+      "Missing Skills:",
+      ...analysis.missingSkills.map((s) => `  - ${s}`),
+      "",
+      "Suggestions:",
+      ...analysis.suggestions.map((s, i) => `  ${i + 1}. ${s}`),
+    ];
+
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${analysis.fileName.replace(/\.[^/.]+$/, "")}-analysis.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -119,6 +160,7 @@ const runAnalysis = async (selectedFile: File) => {
             </h3>
 
             <input
+              ref={fileInputRef}
               type="file"
               accept=".pdf,.docx"
               onChange={handleInputChange}
@@ -128,12 +170,7 @@ const runAnalysis = async (selectedFile: File) => {
 
             <button
               type="button"
-              onClick={() => {
-                const input = document.getElementById(
-                  "cv-file-input"
-                ) as HTMLInputElement;
-                input?.click();
-              }}
+              onClick={() => fileInputRef.current?.click()}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               Choose File
@@ -271,14 +308,14 @@ const runAnalysis = async (selectedFile: File) => {
 
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-4">
-                <button className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors">
+                <button
+                  onClick={handleDownloadReport}
+                  className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+                >
                   Download Report
                 </button>
                 <button
-                  onClick={() => {
-                    setFile(null);
-                    setAnalysis(null);
-                  }}
+                  onClick={handleReset}
                   className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                 >
                   Analyze Another CV
